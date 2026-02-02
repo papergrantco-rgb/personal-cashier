@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal Cashier</title>
+
+<style>
+:root{
+  --bg:#050814;
+  --panel:#0f1c3a;
+  --card:#14244d;
+  --blue:#3b7cff;
+  --soft:#1b2b5a;
+  --text:#eef2ff;
+  --muted:#9aa7d3;
+  --danger:#ff4d4f;
+  --radius:18px;
+}
+*{box-sizing:border-box;font-family:Inter,system-ui}
+body{
+  margin:0;
+  background:radial-gradient(circle at top,#0a1a3a,#050814 65%);
+  color:var(--text);
+}
+
+.app{max-width:420px;margin:auto;padding:24px 18px 120px}
+h1{margin:0}
+.sub{color:var(--muted);margin:6px 0 22px}
+
+/* CARD */
+.card{
+  background:linear-gradient(160deg,#162b5e,#101f46);
+  border-radius:var(--radius);
+  padding:16px;
+  margin-bottom:14px;
+}
+
+/* ACCOUNT */
+.account{
+  background:linear-gradient(160deg,#162b5e,#101f46);
+  border-radius:var(--radius);
+  padding:18px 20px;
+  margin-bottom:14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.account-info{cursor:pointer}
+.account small{color:var(--muted)}
+.account strong{display:block;margin-top:6px;font-size:22px}
+.del-acc{cursor:pointer;color:#ff6b6b}
+
+/* BUTTON */
+.btn{
+  width:100%;
+  padding:15px;
+  border-radius:14px;
+  border:none;
+  font-weight:600;
+  cursor:pointer;
+}
+.primary{background:var(--blue);color:white}
+.secondary{background:var(--soft);color:white}
+.danger{background:transparent;border:1px solid var(--danger);color:var(--danger)}
+.btn-space{margin-top:14px}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}
+
+/* MODAL */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.65);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:50;
+}
+.modal.active{display:flex}
+.box{
+  width:92%;
+  max-width:380px;
+  background:linear-gradient(180deg,#14244d,#0f1c3a);
+  border-radius:24px;
+  padding:22px;
+  position:relative;
+}
+.close{position:absolute;right:16px;top:14px;font-size:22px;cursor:pointer}
+
+/* FORM */
+label{font-size:12px;color:var(--muted);margin-top:14px;display:block}
+input,select,textarea{
+  width:100%;
+  margin-top:6px;
+  padding:14px;
+  border-radius:12px;
+  border:1px solid #263a78;
+  background:#0c1735;
+  color:white;
+}
+textarea{resize:none}
+
+/* CATEGORY */
+.cat-row{display:flex;gap:10px;margin-top:10px}
+.cat-row button{
+  width:44px;
+  border:none;
+  border-radius:10px;
+  background:#22346d;
+  color:white;
+  font-size:18px;
+}
+
+/* HISTORY */
+.history-wrap{max-height:420px;overflow-y:auto}
+.history{
+  background:#0c1735;
+  border-radius:16px;
+  padding:14px;
+  margin-top:12px;
+}
+.h-meta{font-size:11px;color:var(--muted)}
+.h-desc{margin:6px 0}
+.h-amt{font-weight:600}
+.in{color:#4cff9e}
+.out{color:#ff6b6b}
+.h-actions{margin-top:10px}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+  <h1>Personal Cashier</h1>
+  <div class="sub">Daily Spend</div>
+
+  <!-- TOTAL EXPENSE CARD -->
+  <div class="card">
+    <small id="expTitle">Total Expense</small>
+    <strong id="totalExp" style="font-size:22px">Rp. 0</strong>
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <select id="expMonth"></select>
+      <select id="expYear"></select>
+    </div>
+  </div>
+
+  <div id="accounts"></div>
+
+  <button class="btn primary btn-space" onclick="openAccount()">ADD ACCOUNT</button>
+  <button class="btn secondary btn-space" onclick="openTrx()">ADD TRANSACTION</button>
+  <button class="btn secondary btn-space" onclick="openIncome()">NEW INCOME</button>
+  <button class="btn secondary btn-space" onclick="openHistory()">HISTORY</button>
+</div>
+
+<!-- ACCOUNT -->
+<div class="modal" id="accModal">
+  <div class="box">
+    <span class="close" onclick="closeAcc()">✕</span>
+    <h3>Account</h3>
+    <label>Name</label><input id="accName">
+    <label>Balance</label><input type="number" id="accBal">
+    <div class="btn-row">
+      <button class="btn primary" onclick="saveAccount()">SAVE</button>
+      <button class="btn secondary" onclick="closeAcc()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRANSACTION -->
+<div class="modal" id="trxModal">
+  <div class="box">
+    <span class="close" onclick="closeTrx()">✕</span>
+    <h3>Add Transaction</h3>
+    <label>Date</label><input type="date" id="tDate">
+    <label>Account</label><select id="tAcc"></select>
+    <label>Category</label><select id="tCat"></select>
+    <div class="cat-row">
+      <button onclick="addExpCat()">+</button>
+      <button onclick="delExpCat()">−</button>
+    </div>
+    <label>Description</label><textarea id="tDesc"></textarea>
+    <label>Expense</label><input type="number" id="tAmt">
+    <button class="btn primary btn-space" onclick="saveTrx()">SAVE</button>
+  </div>
+</div>
+
+<!-- INCOME -->
+<div class="modal" id="incModal">
+  <div class="box">
+    <span class="close" onclick="closeIncome()">✕</span>
+    <h3>New Income</h3>
+    <label>Date</label><input type="date" id="iDate">
+    <label>Account</label><select id="iAcc"></select>
+    <label>Category</label><select id="iCat"></select>
+    <div class="cat-row">
+      <button onclick="addIncCat()">+</button>
+      <button onclick="delIncCat()">−</button>
+    </div>
+    <label>Description</label><textarea id="iDesc"></textarea>
+    <label>Income</label><input type="number" id="iAmt">
+    <button class="btn primary btn-space" onclick="saveIncome()">SAVE</button>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div class="modal" id="hisModal">
+  <div class="box">
+    <span class="close" onclick="closeHistory()">✕</span>
+    <h3>History</h3>
+
+    <div style="display:flex;gap:10px;margin-bottom:10px">
+      <select id="hisMonth"></select>
+      <select id="hisYear"></select>
+    </div>
+
+    <div class="history-wrap" id="hisList"></div>
+  </div>
+</div>
+
+<script>
+let accounts=JSON.parse(localStorage.acc||"[]");
+let history=JSON.parse(localStorage.his||"[]");
+let expCat=JSON.parse(localStorage.expCat||'["Food","Transport","Others"]');
+let incCat=JSON.parse(localStorage.incCat||'["Personal Transfer","Others"]');
+let editAcc=null;
+
+const rp=v=>"Rp. "+Number(v||0).toLocaleString("id-ID");
+const $=id=>document.getElementById(id);
+const months=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+
+function drawAccounts(){
+  $("accounts").innerHTML="";
+  accounts.forEach((a,i)=>{
+    $("accounts").innerHTML+=`
+    <div class="account">
+      <div class="account-info" onclick="editAccount(${i})">
+        <small>${a.name}</small>
+        <strong>${rp(a.balance)}</strong>
+      </div>
+      <span class="del-acc" onclick="delAccount(${i})">🗑</span>
+    </div>`;
+  });
+}
+
+/* ACCOUNT */
+function openAccount(){accModal.classList.add("active")}
+function editAccount(i){
+  editAcc=i;
+  accName.value=accounts[i].name;
+  accBal.value=accounts[i].balance;
+  accModal.classList.add("active");
+}
+function saveAccount(){
+  if(editAcc===null)accounts.push({name:accName.value,balance:+accBal.value});
+  else accounts[editAcc].balance=+accBal.value;
+  localStorage.acc=JSON.stringify(accounts);
+  closeAcc();drawAccounts();
+}
+function delAccount(i){
+  if(confirm("Delete account?")){
+    accounts.splice(i,1);
+    localStorage.acc=JSON.stringify(accounts);
+    drawAccounts();
+  }
+}
+function closeAcc(){accModal.classList.remove("active");accName.value="";accBal.value="";editAcc=null}
+
+/* SELECT */
+function fillSelect(){
+  tAcc.innerHTML=iAcc.innerHTML=accounts.map((a,i)=>`<option value="${i}">${a.name}</option>`).join("");
+  tCat.innerHTML=expCat.map(c=>`<option>${c}</option>`).join("");
+  iCat.innerHTML=incCat.map(c=>`<option>${c}</option>`).join("");
+}
+
+/* TRANSACTION */
+function openTrx(){fillSelect();trxModal.classList.add("active")}
+function saveTrx(){
+  let i=tAcc.value;
+  accounts[i].balance-=+tAmt.value;
+  history.push({type:"Expense",date:tDate.value,acc:accounts[i].name,cat:tCat.value,desc:tDesc.value,amt:tAmt.value});
+  localStorage.acc=JSON.stringify(accounts);
+  localStorage.his=JSON.stringify(history);
+  closeTrx();drawAccounts();calcExpense();
+}
+function closeTrx(){trxModal.classList.remove("active")}
+
+/* INCOME */
+function openIncome(){fillSelect();incModal.classList.add("active")}
+function saveIncome(){
+  let i=iAcc.value;
+  accounts[i].balance+=+iAmt.value;
+  history.push({type:"Income",date:iDate.value,acc:accounts[i].name,cat:iCat.value,desc:iDesc.value,amt:iAmt.value});
+  localStorage.acc=JSON.stringify(accounts);
+  localStorage.his=JSON.stringify(history);
+  closeIncome();drawAccounts();
+}
+function closeIncome(){incModal.classList.remove("active")}
+
+/* CATEGORY */
+function addExpCat(){let c=prompt("New Expense Category");if(c){expCat.push(c);localStorage.expCat=JSON.stringify(expCat);fillSelect()}}
+function delExpCat(){expCat.splice(tCat.selectedIndex,1);localStorage.expCat=JSON.stringify(expCat);fillSelect()}
+function addIncCat(){let c=prompt("New Income Category");if(c){incCat.push(c);localStorage.incCat=JSON.stringify(incCat);fillSelect()}}
+function delIncCat(){incCat.splice(iCat.selectedIndex,1);localStorage.incCat=JSON.stringify(incCat);fillSelect()}
+
+/* HISTORY + FILTER */
+function openHistory(){
+  renderHistory();
+  hisModal.classList.add("active");
+}
+function renderHistory(){
+  hisList.innerHTML="";
+  let m=hisMonth.value, y=hisYear.value;
+  history.filter(h=>{
+    let d=new Date(h.date);
+    return (!m||d.getMonth()==m)&&(!y||d.getFullYear()==y);
+  }).forEach((h,i)=>{
+    hisList.innerHTML+=`
+    <div class="history">
+      <div class="h-meta">${h.date} • ${h.acc} • ${h.cat}</div>
+      <div class="h-desc">${h.desc}</div>
+      <div class="h-amt ${h.type==="Income"?"in":"out"}">${rp(h.amt)}</div>
+      <div class="h-actions">
+        <button class="btn danger" onclick="delHistory(${i})">Delete</button>
+      </div>
+    </div>`;
+  });
+}
+function delHistory(i){
+  let h=history[i];
+  let acc=accounts.find(a=>a.name===h.acc);
+  if(h.type==="Expense")acc.balance+=+h.amt;
+  else acc.balance-=+h.amt;
+  history.splice(i,1);
+  localStorage.acc=JSON.stringify(accounts);
+  localStorage.his=JSON.stringify(history);
+  renderHistory();drawAccounts();calcExpense();
+}
+function closeHistory(){hisModal.classList.remove("active")}
+
+/* TOTAL EXPENSE */
+function initFilter(){
+  let years=[...new Set(history.map(h=>new Date(h.date).getFullYear()))];
+  expMonth.innerHTML=hisMonth.innerHTML=`<option value="">All Month</option>`+
+    months.map((m,i)=>`<option value="${i}">${m}</option>`).join("");
+  expYear.innerHTML=hisYear.innerHTML=`<option value="">All Year</option>`+
+    years.map(y=>`<option>${y}</option>`).join("");
+}
+function calcExpense(){
+  let m=expMonth.value, y=expYear.value, total=0;
+  history.forEach(h=>{
+    if(h.type==="Expense"){
+      let d=new Date(h.date);
+      if((!m||d.getMonth()==m)&&(!y||d.getFullYear()==y)) total+=+h.amt;
+    }
+  });
+  expTitle.innerText=`Total Expense ${m!==""?months[m]:""} ${y||""}`;
+  totalExp.innerText=rp(total);
+}
+
+expMonth.onchange=expYear.onchange=calcExpense;
+hisMonth.onchange=hisYear.onchange=renderHistory;
+
+drawAccounts();initFilter();calcExpense();
+</script>
+</body>
+</html>
